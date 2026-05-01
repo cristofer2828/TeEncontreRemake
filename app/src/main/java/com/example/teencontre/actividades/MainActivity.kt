@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +34,9 @@ import com.example.teencontre.ui.theme.TeEncontreTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.example.teencontre.sharedprefs.PreferenceManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,7 +85,8 @@ class MainActivity : ComponentActivity() {
                                     currentScreen = "wizard"
                                 },
                                 onProfileClick = { currentScreen = "profile" },
-                                onPublishClick = { currentScreen = "selector" }
+                                onPublishClick = { currentScreen = "selector" },
+                                onNavigate = { currentScreen = it }
                             )
 
                             "wizard" -> {
@@ -105,6 +110,10 @@ class MainActivity : ComponentActivity() {
                                 onDarkModeChange = { isDarkMode = it },
                                 onBack = { currentScreen = "profile" },
                                 onNavigate = { route -> currentScreen = route }
+                            )
+                            "encuentranos" -> EncuentranosScreen(
+                                onProfileClick = { currentScreen = "profile" },
+                                onPublishClick = { currentScreen = "selector" }
                             )
                         }
                     }
@@ -364,7 +373,8 @@ fun CreateAnnouncementScreen(
     onEncontreClick: () -> Unit,
     onPerdiClick: () -> Unit,// Añadimos este parámetro para la lógica de "Perdí"
     onProfileClick: () -> Unit,
-    onPublishClick: () -> Unit
+    onPublishClick: () -> Unit,
+    onNavigate: (String) -> Unit
 ) {
     val primaryPurple = Color(0xFF7C4DFF)
 
@@ -372,7 +382,8 @@ fun CreateAnnouncementScreen(
         bottomBar = {
             BottomNavigationBar(
                 onProfileClick = onProfileClick,
-                onPublishClick = onPublishClick
+                onPublishClick = onPublishClick,
+                onEncuentranosClick = { onNavigate("encuentranos") }
             )
         }
     ) { paddingValues ->
@@ -432,7 +443,7 @@ fun CreateAnnouncementScreen(
 }
 
 @Composable
-fun BottomNavigationBar(onProfileClick: () -> Unit, onPublishClick: () -> Unit) {
+fun BottomNavigationBar(onProfileClick: () -> Unit, onPublishClick: () -> Unit, onEncuentranosClick: () -> Unit) {
     // Definimos los colores basados en el tema actual
     val backgroundColor = MaterialTheme.colorScheme.surface
     val selectedColor = Color(0xFF7C4DFF)
@@ -456,7 +467,7 @@ fun BottomNavigationBar(onProfileClick: () -> Unit, onPublishClick: () -> Unit) 
             icon = android.R.drawable.ic_menu_search,
             label = "Encuentralos",
             color = unselectedColor,
-            onClick = { /* Próximamente */ }
+            onClick = onEncuentranosClick
         )
         NavigationItem(
             icon = android.R.drawable.ic_dialog_map,
@@ -498,6 +509,7 @@ fun LoginInput(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     isPassword: Boolean = false
 ) {
     OutlinedTextField(
@@ -525,7 +537,8 @@ fun LoginInput(
             focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         ),
         singleLine = true,
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(8.dp),
+        keyboardOptions = keyboardOptions
     )
 }
 
@@ -538,7 +551,8 @@ fun ProfileScreen(
         bottomBar = {
             BottomNavigationBar(
                 onProfileClick = { /* Ya estamos aquí */ },
-                onPublishClick = { onNavigate("selector") }
+                onPublishClick = { onNavigate("selector") },
+                onEncuentranosClick = { onNavigate("encuentranos") }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -646,13 +660,22 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
-    var emailNotifications by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val prefs = remember { PreferenceManager(context) }
+
+    // 🔹 CARGAR DATOS DESDE SHARED
+    var nombre by remember { mutableStateOf(prefs.getUserName()) }
+    var telefono by remember { mutableStateOf(prefs.getPhone()) }
+    var correo by remember { mutableStateOf(prefs.getEmail()) }
+
+    var emailNotifications by remember { mutableStateOf(prefs.getNotifications()) }
 
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
                 onProfileClick = { /* Ya estamos en el flujo de perfil */ },
-                onPublishClick = { onNavigate("selector") }
+                onPublishClick = { onNavigate("selector") },
+                onEncuentranosClick = { onNavigate("encuentranos") }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -673,7 +696,7 @@ fun SettingsScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "← Atrás",
+                        "← AtrásCAMBIOCTRLZ",
                         fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -715,18 +738,24 @@ fun SettingsScreen(
             Text("Información del contacto", color = Color.Gray, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
-            LoginInput("Su nombre", "", {}, "Nombre")
+            // 🔹 INPUTS FUNCIONALES
+            LoginInput("Su nombre", nombre, { nombre = it }, "Nombre")
             Spacer(modifier = Modifier.height(12.dp))
-            LoginInput("Número de teléfono", "", {}, "+51")
+
+            LoginInput("Número de teléfono",telefono,{ if (it.length <= 9 && it.all { char -> char.isDigit() }) { telefono = it } }, "+51", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             Spacer(modifier = Modifier.height(12.dp))
-            LoginInput("Tu correo electrónico", "", {}, "example@email.com")
+
+            LoginInput("Tu correo electrónico", correo, { correo = it }, "example@email.com")
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(
                     checked = emailNotifications,
-                    onCheckedChange = { emailNotifications = it },
+                    onCheckedChange = {
+                        emailNotifications = it
+                        prefs.setNotifications(it)
+                    },
                     modifier = Modifier.scale(0.8f)
                 )
                 Text(
@@ -756,11 +785,15 @@ fun SettingsScreen(
 
             // BOTÓN APLICAR (Adaptado al tema)
             Button(
-                onClick = { /* Lógica para guardar cambios */ },
+                onClick = {
+                    prefs.setUserName(nombre)
+                    prefs.setPhone(telefono)
+                    prefs.setEmail(correo)
+                },
                 modifier = Modifier
-                    .width(150.dp)
-                    .height(48.dp),
-                shape = RoundedCornerShape(8.dp),
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )

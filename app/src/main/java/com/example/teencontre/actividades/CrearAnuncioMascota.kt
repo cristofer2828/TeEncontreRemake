@@ -66,7 +66,10 @@ fun WizardCrearAnuncio(onBackToSelector: () -> Unit) {
 
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(onProfileClick = {}, onPublishClick = onBackToSelector)
+            BottomNavigationBar(
+                onProfileClick = {},
+                onPublishClick = onBackToSelector,
+                onEncuentranosClick = { })
         }
     ) { paddingValues ->
         Column(
@@ -145,7 +148,10 @@ fun WizardEncontreMascota(onBackToSelector: () -> Unit) {
 
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(onProfileClick = {}, onPublishClick = onBackToSelector)
+            BottomNavigationBar(
+                onProfileClick = {},
+                onPublishClick = onBackToSelector,
+                onEncuentranosClick = { })
         }
     ) { paddingValues ->
         Column(
