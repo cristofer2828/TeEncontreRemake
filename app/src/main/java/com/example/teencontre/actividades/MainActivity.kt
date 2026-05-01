@@ -38,6 +38,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import com.example.teencontre.sharedprefs.PreferenceManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,8 +135,14 @@ class MainActivity : ComponentActivity() {
 // --- PANTALLA: LOGIN ---
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit, onRegisterClick: () -> Unit) {
-    // En lugar de un color fijo, usamos el del tema para que sea consistente
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    // 1. ESTADOS PARA LOS INPUTS (Para que permitan escribir)
+    var correo by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    // 2. ESTADO PARA LA VISIBILIDAD DE LA CONTRASEÑA
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -146,7 +153,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onRegisterClick: () -> Unit) {
     ) {
         Spacer(modifier = Modifier.height(80.dp))
 
-        // Logo circular: Cambiamos el fondo blanco fijo por surfaceVariant
         Box(
             modifier = Modifier
                 .size(250.dp)
@@ -173,10 +179,34 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onRegisterClick: () -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Estos ya funcionarán con el tema porque actualizamos la función LoginInput antes
-        LoginInput(label = "Correo", value = "", onValueChange = {}, placeholder = "example@email.com")
+        // Campo de Correo conectado al estado
+        LoginInput(
+            label = "Correo",
+            value = correo,
+            onValueChange = { correo = it },
+            placeholder = "example@email.com"
+        )
+
         Spacer(modifier = Modifier.height(16.dp))
-        LoginInput(label = "Contraseña", value = "", onValueChange = {}, placeholder = "Contraseña", isPassword = true)
+
+        // Campo de Contraseña con icono de ojo dinámico
+        LoginInput(
+            label = "Contraseña",
+            value = password,
+            onValueChange = { password = it },
+            placeholder = "Contraseña",
+            isPassword = !passwordVisible, // Si visible es true, isPassword es false
+            trailingIcon = {
+                val icon = if (passwordVisible) android.R.drawable.ic_menu_view else android.R.drawable.ic_menu_close_clear_cancel
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        painter = painterResource(id = icon),
+                        contentDescription = "Ver contraseña",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        )
 
         Spacer(modifier = Modifier.height(30.dp))
 
@@ -560,39 +590,37 @@ fun LoginInput(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
+    isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    isPassword: Boolean = false
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
+    // Ajustamos el teclado automáticamente si es contraseña
+    val customKeyboardOptions = if (isPassword) {
+        keyboardOptions.copy(keyboardType = KeyboardType.Password)
+    } else {
+        keyboardOptions
+    }
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label) },
         placeholder = { Text(placeholder) },
+        singleLine = true,
+        // Controla si se ven los puntos o el texto real
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = customKeyboardOptions,
+        trailingIcon = trailingIcon,
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            // En tu versión los parámetros son así:
-            focusedTextColor = MaterialTheme.colorScheme.onBackground,
-            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-
             focusedLabelColor = MaterialTheme.colorScheme.primary,
-            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-
-            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-        ),
-        singleLine = true,
-        shape = RoundedCornerShape(8.dp),
-        keyboardOptions = keyboardOptions
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     )
 }
-
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
@@ -715,20 +743,29 @@ fun SettingsScreen(
     val context = LocalContext.current
     val prefs = remember { PreferenceManager(context) }
 
-    // 🔹 CARGAR DATOS DESDE SHARED
+    // 🔹 DATOS DE CONTACTO
     var nombre by remember { mutableStateOf(prefs.getUserName()) }
     var telefono by remember { mutableStateOf(prefs.getPhone()) }
     var correo by remember { mutableStateOf(prefs.getEmail()) }
-
     var emailNotifications by remember { mutableStateOf(prefs.getNotifications()) }
+
+    // 🔹 DATOS DE SEGURIDAD (Estado de los campos)
+    var passwordActual by remember { mutableStateOf("") }
+    var passwordNueva by remember { mutableStateOf("") }
+    var passwordRepetir by remember { mutableStateOf("") }
+
+    // 🔹 ESTADOS DE VISIBILIDAD (Estado de los ojos)
+    var showPasswordActual by remember { mutableStateOf(false) }
+    var showPasswordNueva by remember { mutableStateOf(false) }
+    var showPasswordRepetir by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
-                onProfileClick = { /* Ya estamos en el flujo de perfil */ },
+                onProfileClick = { onBack() },
                 onPublishClick = { onNavigate("selector") },
                 onEncuentranosClick = { onNavigate("encuentranos") },
-                onMapaClick = { onNavigate("mapa") } // <-- Agrega esta línea
+                onMapaClick = { onNavigate("mapa") }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -743,16 +780,9 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // BOTÓN ATRÁS
-            TextButton(
-                onClick = onBack,
-                contentPadding = PaddingValues(0.dp)
-            ) {
+            TextButton(onClick = onBack, contentPadding = PaddingValues(0.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "← Atrás",
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text("← Atrás", fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -770,34 +800,20 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Modo oscuro",
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Switch(
-                    checked = isDarkMode,
-                    onCheckedChange = { onDarkModeChange(it) }
-                )
+                Text("Modo oscuro", fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
+                Switch(checked = isDarkMode, onCheckedChange = { onDarkModeChange(it) })
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 16.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), thickness = 0.5.dp)
 
             // SECCIÓN: INFORMACIÓN DE CONTACTO
             Text("Información del contacto", color = Color.Gray, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🔹 INPUTS FUNCIONALES
             LoginInput("Su nombre", nombre, { nombre = it }, "Nombre")
             Spacer(modifier = Modifier.height(12.dp))
-
-            LoginInput("Número de teléfono",telefono,{ if (it.length <= 9 && it.all { char -> char.isDigit() }) { telefono = it } }, "+51", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            LoginInput("Número de teléfono", telefono, { if (it.length <= 9) telefono = it }, "+51")
             Spacer(modifier = Modifier.height(12.dp))
-
             LoginInput("Tu correo electrónico", correo, { correo = it }, "example@email.com")
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -805,64 +821,81 @@ fun SettingsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(
                     checked = emailNotifications,
-                    onCheckedChange = {
-                        emailNotifications = it
-                        prefs.setNotifications(it)
-                    },
+                    onCheckedChange = { emailNotifications = it; prefs.setNotifications(it) },
                     modifier = Modifier.scale(0.8f)
                 )
-                Text(
-                    "Notificaciones por correo",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Text("Notificaciones por correo", fontSize = 14.sp)
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 16.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), thickness = 0.5.dp)
 
-            // SECCIÓN: SEGURIDAD
+            // SECCIÓN: SEGURIDAD (CON LÓGICA DE ICONOS CORREGIDA)
             Text("Seguridad", color = Color.Gray, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
-            LoginInput("Tu contraseña actual", "", {}, "Contraseña", isPassword = true)
+            // Campo 1: Contraseña Actual
+            LoginInput(
+                label = "Tu contraseña actual",
+                value = passwordActual,
+                onValueChange = { passwordActual = it },
+                placeholder = "Contraseña",
+                isPassword = !showPasswordActual,
+                trailingIcon = {
+                    val icon = if (!showPasswordActual) android.R.drawable.ic_menu_view else android.R.drawable.ic_menu_close_clear_cancel
+                    IconButton(onClick = { showPasswordActual = !showPasswordActual }) {
+                        Icon(painter = painterResource(id = icon), contentDescription = null, modifier = Modifier.size(24.dp))
+                    }
+                }
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            LoginInput("Ingrese una nueva contraseña", "", {}, "Nueva contraseña", isPassword = true)
+
+            // Campo 2: Nueva Contraseña
+            LoginInput(
+                label = "Ingrese una nueva contraseña",
+                value = passwordNueva,
+                onValueChange = { passwordNueva = it },
+                placeholder = "Nueva contraseña",
+                isPassword = !showPasswordNueva,
+                trailingIcon = {
+                    val icon = if (!showPasswordNueva) android.R.drawable.ic_menu_view else android.R.drawable.ic_menu_close_clear_cancel
+                    IconButton(onClick = { showPasswordNueva = !showPasswordNueva }) {
+                        Icon(painter = painterResource(id = icon), contentDescription = null, modifier = Modifier.size(24.dp))
+                    }
+                }
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            LoginInput("Repita la nueva contraseña", "", {}, "Nueva contraseña", isPassword = true)
+
+            // Campo 3: Repetir Contraseña
+            LoginInput(
+                label = "Repita la nueva contraseña",
+                value = passwordRepetir,
+                onValueChange = { passwordRepetir = it },
+                placeholder = "Nueva contraseña",
+                isPassword = !showPasswordRepetir,
+                trailingIcon = {
+                    val icon = if (!showPasswordRepetir) android.R.drawable.ic_menu_view else android.R.drawable.ic_menu_close_clear_cancel
+                    IconButton(onClick = { showPasswordRepetir = !showPasswordRepetir }) {
+                        Icon(painter = painterResource(id = icon), contentDescription = null, modifier = Modifier.size(24.dp))
+                    }
+                }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // BOTÓN APLICAR (Adaptado al tema)
             Button(
                 onClick = {
-                    prefs.setUserName(nombre)
-                    prefs.setPhone(telefono)
-                    prefs.setEmail(correo)
+                    prefs.setUserName(nombre); prefs.setPhone(telefono); prefs.setEmail(correo)
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text(
-                    "APLICAR",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
+                Text("APLICAR", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
             }
-
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
-
 @Composable
 fun ProfileOptionsCard(onNavigate: (String) -> Unit) {
     Card(
