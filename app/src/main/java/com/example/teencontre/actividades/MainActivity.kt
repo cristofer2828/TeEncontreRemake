@@ -76,31 +76,45 @@ class MainActivity : ComponentActivity() {
                                 content = textoTerminosONS,
                                 onBack = { currentScreen = "register" }
                             )
-                            //Agrero roy para conectar el otro arch.kt
-                            "selector" -> CreateAnnouncementScreen(
-                                onEncontreClick = {
-                                    wizardMode = "encontre"
-                                    currentScreen = "wizard"
-                                },
-                                onPerdiClick = {
-                                    wizardMode = "perdi"
-                                    currentScreen = "wizard"
-                                },
-                                onProfileClick = { currentScreen = "profile" },
-                                onPublishClick = { currentScreen = "selector" },
-                                onNavigate = { currentScreen = it }
-                            )
+                            "selector" -> {
+                                CreateAnnouncementScreen(
+                                    onEncontreClick = {
+                                        wizardMode = "encontre"
+                                        currentScreen = "wizard"
+                                    },
+                                    onPerdiClick = {
+                                        wizardMode = "perdi"
+                                        currentScreen = "wizard"
+                                    },
+                                    onAdopcionClick = {
+                                        wizardMode = "adopcion" // Correcto: activamos el modo adopción
+                                        currentScreen = "wizard"
+                                    },
+                                    onProfileClick = { currentScreen = "profile" },
+                                    onPublishClick = { currentScreen = "selector" },
+                                    onNavigate = { currentScreen = it }
+                                )
+                            }
 
                             "wizard" -> {
-                                // Aquí decidimos qué Composable mostrar según el modo guardado
-                                if (wizardMode == "perdi") {
-                                    WizardCrearAnuncio(
-                                        onBackToSelector = { currentScreen = "selector" }
-                                    )
-                                } else {
-                                    WizardEncontreMascota(
-                                        onBackToSelector = { currentScreen = "selector" }
-                                    )
+                                // Usamos un 'when' para que sea más limpio y soporte los 3 modos
+                                when (wizardMode) {
+                                    "perdi" -> {
+                                        WizardCrearAnuncio(
+                                            onBackToSelector = { currentScreen = "selector" }
+                                        )
+                                    }
+                                    "encontre" -> {
+                                        WizardEncontreMascota(
+                                            onBackToSelector = { currentScreen = "selector" }
+                                        )
+                                    }
+                                    "adopcion" -> {
+                                        // AQUÍ LLAMAS AL NUEVO ARCHIVO/COMPOSABLE:
+                                        WizardCrearAdopcion(
+                                            onBackToSelector = { currentScreen = "selector" }
+                                        )
+                                    }
                                 }
                             }
                             "profile" -> ProfileScreen(
@@ -415,16 +429,18 @@ val textoTerminosONS = """
 fun CreateAnnouncementScreen(
     onEncontreClick: () -> Unit,
     onPerdiClick: () -> Unit,
+    onAdopcionClick: () -> Unit, // Nueva acción para adopción
     onProfileClick: () -> Unit,
     onPublishClick: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
-    val primaryPurple = Color(0xFF7C4DFF)
-    // Estado para controlar la visibilidad del diálogo de la burbuja
+    val primaryPurple = MaterialTheme.colorScheme.primary
     var showDialog by remember { mutableStateOf(false) }
 
-    // Usamos un Box principal para que la burbuja flote sobre el Scaffold
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Estado para habilitar el botón de Adopción (Simulación de Organización)
+    var isOrganization by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Scaffold(
             bottomBar = {
                 BottomNavigationBar(
@@ -433,7 +449,8 @@ fun CreateAnnouncementScreen(
                     onEncuentranosClick = { onNavigate("encuentranos") },
                     onMapaClick = { onNavigate("mapa") }
                 )
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -443,17 +460,37 @@ fun CreateAnnouncementScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-
                 Text(
                     text = "Crear un anuncio",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
-                Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
-                Text("¿Que ha pasado?", fontSize = 16.sp)
+                // SWITCH DE SIMULACIÓN (image_13b3f7.png)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 20.dp)
+                ) {
+                    Switch(
+                        checked = isOrganization,
+                        onCheckedChange = { isOrganization = it }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "Simulacion cuenta organización",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Text(
+                    "¿Que ha pasado?",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -478,17 +515,43 @@ fun CreateAnnouncementScreen(
                 ) {
                     Text("Encontre mascota", color = primaryPurple, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // BOTÓN: ADOPCIÓN (Bloqueado/Habilitado dinámicamente)
+                Button(
+                    onClick = { if (isOrganization) onAdopcionClick() },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        // Cambia el color a gris si no es organización
+                        containerColor = if (isOrganization) primaryPurple else Color.Gray.copy(alpha = 0.6f),
+                        contentColor = if (isOrganization) Color.White else Color.DarkGray
+                    )
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Adopcion", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        if (!isOrganization) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_lock_idle_lock),
+                                contentDescription = "Bloqueado",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // --- COMPONENTE DE LA BURBUJA (FLOTANTE) ---
+        // --- BURBUJA FLOTANTE (ADAPTA AL MODO OSCURO) ---
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 45.dp, start = 0.dp) // start=0 para que pegue al borde izquierdo
+                .padding(top = 45.dp, start = 0.dp)
                 .size(70.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { showDialog = true },
             contentAlignment = Alignment.Center
         ) {
@@ -496,23 +559,32 @@ fun CreateAnnouncementScreen(
                 painter = painterResource(id = R.drawable.adopta),
                 contentDescription = "Adopta",
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop // Evita que la imagen se deforme
+                contentScale = ContentScale.Crop
             )
         }
     }
 
-    // Ventana emergente de información
+    // DIÁLOGO (CON COLORES DEL TEMA)
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Adopta con responsabilidad", fontWeight = FontWeight.Bold) },
-            text = { Text("Adoptar una mascota es un compromiso de amor, cuidado y respeto. Asegúrate de brindar un hogar seguro.") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    "Adopta con responsabilidad",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    "Adoptar una mascota es un compromiso de amor, cuidado y respeto.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
-                Button(
-                    onClick = { showDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryPurple)
-                ) {
-                    Text("Entendido")
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Entendido", color = primaryPurple)
                 }
             }
         )
