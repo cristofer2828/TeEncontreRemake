@@ -176,7 +176,10 @@ fun EncuentranosScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(8.dp)
+                            .clickable {
+                                onNavigate("detalle_anuncio")
+                            },
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(modifier = Modifier.padding(10.dp)) {

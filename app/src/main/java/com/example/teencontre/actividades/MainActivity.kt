@@ -124,6 +124,10 @@ class MainActivity : ComponentActivity() {
                                 onProfileClick = { currentScreen = "profile" },
                                 onPublishClick = { currentScreen = "selector" }
                             )
+                            "detalle_anuncio" -> DetalleAnuncioScreen(
+                                onBack = { currentScreen = "encuentranos" },
+                                onNavigate = { currentScreen = it }
+                            )
                         }
                     }
                 }
@@ -131,6 +135,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 
 // --- PANTALLA: LOGIN ---
 @Composable
@@ -438,14 +443,6 @@ fun CreateAnnouncementScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // MENSAJE EMOTIVO
-                Text(
-                    text = "Cada acción cuenta para que un corazón vuelva a casa.",
-                    fontSize = 14.sp,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
 
                 Text(
                     text = "Crear un anuncio",
@@ -936,4 +933,3 @@ fun ProfileOptionsCard(onNavigate: (String) -> Unit) {
         }
     }
 }
-
