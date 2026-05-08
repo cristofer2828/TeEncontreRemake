@@ -74,7 +74,7 @@ fun DetalleAnuncioScreen(
             BottomNavigationBar(
                 onProfileClick = { onNavigate("profile") },
                 onPublishClick = { onNavigate("selector") },
-                onEncuentranosClick = { onNavigate("encuentranos") },
+                onEncuentranosClick = { onNavigate("Encuéntranos") },
                 onMapaClick = { onNavigate("mapa") }
             )
         }

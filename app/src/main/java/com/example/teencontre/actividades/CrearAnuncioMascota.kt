@@ -92,7 +92,7 @@ fun WizardCrearAnuncio(onBackToSelector: () -> Unit) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = if (step < 6) "Mascota Perdida" else "Hecho",
+                text = if (step < 6) "Mascota perdida" else "Hecho",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black
             )
@@ -206,7 +206,7 @@ fun WizardEncontreMascota(onBackToSelector: () -> Unit) {
             Spacer(modifier = Modifier.height(40.dp))
             ProgressCircle(step = step)
             Spacer(modifier = Modifier.height(24.dp))
-            Text(text = if (step < 6) "Mascota Encontrada" else "¡Gracias!", fontSize = 24.sp, fontWeight = FontWeight.Black)
+            Text(text = if (step < 6) "Mascota encontrada" else "¡Gracias!", fontSize = 24.sp, fontWeight = FontWeight.Black)
             Spacer(modifier = Modifier.height(32.dp))
 
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -470,7 +470,7 @@ fun PasoContacto(
             onDismissRequest = { showTermsDialog = false },
             title = {
                 Text(
-                    "Términos de Publicación y Seguridad",
+                    "Términos de publicación y Seguridad",
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -569,7 +569,7 @@ fun PasoMascota(
 
         Spacer(Modifier.height(12.dp))
 
-        SelectorDoble("Genero", "Hembra" to "Macho", gen, onGen)
+        SelectorDoble("Género", "Hembra" to "Macho", gen, onGen)
 
         Spacer(Modifier.height(12.dp))
 
@@ -1051,7 +1051,7 @@ fun PasoContactoOrg(
             onDismissRequest = { showTermsDialog = false },
             title = {
                 Text(
-                    "Términos de Publicación y Seguridad",
+                    "Términos de publicación y Seguridad",
                     fontWeight = FontWeight.Bold
                 )
             },

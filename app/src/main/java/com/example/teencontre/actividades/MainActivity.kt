@@ -296,14 +296,14 @@ fun RegisterScreen(
                 onCheckedChange = { isOrganization = it }
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Verifiquese como centro de adopcion", fontSize = 14.sp)
+            Text("Verifíquese como centro de adopción", fontSize = 14.sp)
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
         // FORMULARIO DINÁMICO
         if (isOrganization) {
-            LoginInput("Nombre", "", {}, "Nombre de la organizacion")
+            LoginInput("Nombre", "", {}, "nombre de la organización")
             Spacer(modifier = Modifier.height(16.dp))
             LoginInput("Número de teléfono", "", {}, "+51")
             Spacer(modifier = Modifier.height(16.dp))
@@ -311,7 +311,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(16.dp))
             LoginInput("RUC", "", {}, "RUC")
             Spacer(modifier = Modifier.height(16.dp))
-            LoginInput("Direccion", "", {}, "Direccion")
+            LoginInput("Dirección", "", {}, "Dirección")
         } else {
             LoginInput("Nombres", "", {}, "Su nombre")
             Spacer(modifier = Modifier.height(16.dp))
@@ -330,7 +330,7 @@ fun RegisterScreen(
         if (isOrganization) {
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Recuerde que la confirmacion tardara maximo 1 semana",
+                text = "confirmación tardará máximo 1 semana.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
@@ -362,7 +362,7 @@ fun RegisterScreen(
                     modifier = Modifier.height(20.dp)
                 ) {
                     Text(
-                        text = "Mas informacion",
+                        text = "Más información",
                         color = linkBlue,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -383,7 +383,7 @@ fun RegisterScreen(
         }
 
         TextButton(onClick = onBackToLogin) {
-            Text("¿Ya tienes cuenta? Ingresa aquí", color = Color.Gray)
+            Text("¿Ya tienes cuenta? Ingresa aquí.", color = Color.Gray)
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -411,7 +411,7 @@ fun TermsFrame(title: String, content: String, onBack: () -> Unit) {
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))
         ) {
-            Text("Entendido y Volver", fontWeight = FontWeight.Bold)
+            Text("Entendido y volver", fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -459,7 +459,7 @@ fun CreateAnnouncementScreen(
                 BottomNavigationBar(
                     onProfileClick = onProfileClick,
                     onPublishClick = onPublishClick,
-                    onEncuentranosClick = { onNavigate("encuentranos") },
+                    onEncuentranosClick = { onNavigate("Encuéntranos.") },
                     onMapaClick = { onNavigate("mapa") }
                 )
             },
@@ -492,14 +492,14 @@ fun CreateAnnouncementScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        "Simulacion cuenta organización",
+                        "Simulación cuenta organización",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Text(
-                    "¿Que ha pasado?",
+                        "¿Qué ha pasado?",
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -513,7 +513,7 @@ fun CreateAnnouncementScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = primaryPurple)
                 ) {
-                    Text("Perdí a mi mascota", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Perdí a mi mascota.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -525,7 +525,7 @@ fun CreateAnnouncementScreen(
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, primaryPurple)
                 ) {
-                    Text("Encontre mascota", color = primaryPurple, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Encontré mascota", color = primaryPurple, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -542,7 +542,7 @@ fun CreateAnnouncementScreen(
                     )
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Adopcion", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Adopción", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         if (!isOrganization) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
@@ -583,7 +583,7 @@ fun CreateAnnouncementScreen(
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
-                    "Adopta con responsabilidad",
+                    "Adopta con responsabilidad.",
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -625,7 +625,7 @@ fun BottomNavigationBar(onProfileClick: () -> Unit, onPublishClick: () -> Unit, 
         )
         NavigationItem(
             icon = android.R.drawable.ic_menu_search,
-            label = "Encuentralos",
+            label = "Encuéntralos",
             color = unselectedColor,
             onClick = onEncuentranosClick
         )
@@ -715,7 +715,7 @@ fun ProfileScreen(
             BottomNavigationBar(
                 onProfileClick = { },
                 onPublishClick = { onNavigate("selector") },
-                onEncuentranosClick = { onNavigate("encuentranos") },
+                onEncuentranosClick = { onNavigate("Encuéntranos") },
                 onMapaClick = { onNavigate("mapa") }
             )
         },
@@ -785,7 +785,7 @@ fun ProfileScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD96666)),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Cerrar sesion", fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Cerrar sesión", fontWeight = FontWeight.Bold, color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -1049,7 +1049,7 @@ fun SettingsScreen(
 
             // Campo 2: Nueva Contraseña
             LoginInput(
-                label = "Ingrese una nueva contraseña",
+                label = "Ingrese una nueva contraseña.",
                 value = passwordNueva,
                 onValueChange = { passwordNueva = it },
                 placeholder = "Nueva contraseña",
@@ -1065,7 +1065,7 @@ fun SettingsScreen(
 
             // Campo 3: Repetir Contraseña
             LoginInput(
-                label = "Repita la nueva contraseña",
+                label = "Repita la nueva contraseña.",
                 value = passwordRepetir,
                 onValueChange = { passwordRepetir = it },
                 placeholder = "Nueva contraseña",

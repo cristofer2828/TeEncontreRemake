@@ -137,7 +137,7 @@ fun EncuentranosScreen(
 
                         FiltroItem("Desaparecido", desaparecido) { desaparecido = it }
                         FiltroItem("Encontrado", encontrado) { encontrado = it }
-                        FiltroItem("Busca un nuevo dueño", adopcion) { adopcion = it }
+                        FiltroItem("Busca un nuevo dueño.", adopcion) { adopcion = it }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -145,7 +145,6 @@ fun EncuentranosScreen(
 
                         FiltroItem("Perro", perro) { perro = it }
                         FiltroItem("Gato", gato) { gato = it }
-                        FiltroItem("Otro", otro) { otro = it }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
