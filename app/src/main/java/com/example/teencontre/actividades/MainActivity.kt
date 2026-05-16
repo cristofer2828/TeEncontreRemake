@@ -459,7 +459,7 @@ fun CreateAnnouncementScreen(
                 BottomNavigationBar(
                     onProfileClick = onProfileClick,
                     onPublishClick = onPublishClick,
-                    onEncuentranosClick = { onNavigate("Encuéntranos.") },
+                    onEncuentranosClick = { onNavigate("encuentranos") },
                     onMapaClick = { onNavigate("mapa") }
                 )
             },
@@ -715,7 +715,7 @@ fun ProfileScreen(
             BottomNavigationBar(
                 onProfileClick = { },
                 onPublishClick = { onNavigate("selector") },
-                onEncuentranosClick = { onNavigate("Encuéntranos") },
+                onEncuentranosClick = { onNavigate("encuentranos") },
                 onMapaClick = { onNavigate("mapa") }
             )
         },
