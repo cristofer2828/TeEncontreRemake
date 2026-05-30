@@ -36,8 +36,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
 // IMPORTACIONES DE TU PAQUETE DE DATOS
-import com.example.teencontre.data.DatabaseHelper
-import com.example.teencontre.data.MascotasEncontradasModel
+import com.example.teencontre.data.local.DatabaseHelper
+import com.example.teencontre.data.model.MascotasEncontradasModel
 
 // COLOR VERDE SÉPTIMO PASO (CONSERVA TU IDENTIDAD VISUAL)
 private val FigmaGreen = Color(0xFF4CAF50)

@@ -52,18 +52,18 @@ import java.util.Locale
 import androidx.compose.ui.text.TextStyle
 
 // IMPORTACIONES DE TU CONFIGURACIÓN DE BASE DE DATOS
-import com.example.teencontre.data.DatabaseHelper
-import com.example.teencontre.data.MascotasPerdidasModel
-
+import com.example.teencontre.data.local.DatabaseHelper
+import com.example.teencontre.data.model.MascotasPerdidasModel
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WizardCrearAnuncio(onBackToSelector: () -> Unit) {
+fun WizardMascotaPerdida(onBackToSelector: () -> Unit) {
     val context = LocalContext.current
     val sharedPreferences = remember { context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE) }
     val dbHelper = remember { DatabaseHelper(context) }
-
+    val coroutineScope = rememberCoroutineScope()
     var step by remember { mutableIntStateOf(1) }
     val totalSteps = 5
 
@@ -242,6 +242,7 @@ fun WizardCrearAnuncio(onBackToSelector: () -> Unit) {
 
                             val mascotaReportada = MascotasPerdidasModel(
                                 id = 0,
+                                idUsuario = 0,
                                 nombreM = nombreMascota,
                                 especie = petType,
                                 genero = gender,
@@ -255,8 +256,55 @@ fun WizardCrearAnuncio(onBackToSelector: () -> Unit) {
                                 correo = contactEmail
                             )
 
-                            dbHelper.insertPerdido(mascotaReportada)
-                            step = 6
+                            // Guardado en SQLite local
+                            val resultadoLocal = dbHelper.insertPerdido(mascotaReportada)
+
+                            if (resultadoLocal > -1) {
+                                step = 6 // Cambia al frame de éxito
+
+                                coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    try {
+                                        // Definimos los tipos de medio para mayor claridad
+                                        val textType = "text/plain".toMediaTypeOrNull()
+                                        val imageType = "image/jpeg".toMediaTypeOrNull()
+
+                                        // 1. Preparamos los textos usando el método create clásico
+                                        val idUsuarioPart = okhttp3.RequestBody.create(textType, "0")
+                                        val nombreMPart = okhttp3.RequestBody.create(textType, mascotaReportada.nombreM)
+                                        val especiePart = okhttp3.RequestBody.create(textType, mascotaReportada.especie)
+                                        val generoPart = okhttp3.RequestBody.create(textType, mascotaReportada.genero)
+                                        val razaPart = okhttp3.RequestBody.create(textType, mascotaReportada.raza)
+                                        val fechaPart = okhttp3.RequestBody.create(textType, mascotaReportada.fecha)
+                                        val lugarPart = okhttp3.RequestBody.create(textType, mascotaReportada.lugar)
+                                        val descPart = okhttp3.RequestBody.create(textType, mascotaReportada.descripcion)
+                                        val contactoPart = okhttp3.RequestBody.create(textType, mascotaReportada.contacto)
+                                        val telefonoPart = okhttp3.RequestBody.create(textType, mascotaReportada.telefono)
+                                        val correoPart = okhttp3.RequestBody.create(textType, mascotaReportada.correo)
+
+                                        // 2. Preparamos la foto usando el método create clásico
+                                        val fotoPart = mascotaReportada.foto?.let { bytes ->
+                                            val requestFile = okhttp3.RequestBody.create(imageType, bytes)
+                                            okhttp3.MultipartBody.Part.createFormData("foto", "mascota.jpg", requestFile)
+                                        }
+
+                                        // 3. Enviamos los parámetros separados
+                                        val response = com.example.teencontre.data.remote.RetrofitClient.instance.subirPerdido(
+                                            idUsuarioPart, nombreMPart, especiePart, generoPart, razaPart,
+                                            fechaPart, lugarPart, descPart, contactoPart, telefonoPart, correoPart, fotoPart
+                                        )
+
+                                        if (response.isSuccessful) {
+                                            println("Sincronización exitosa con Azure.")
+                                        } else {
+                                            println("Error de Azure: ${response.code()}")
+                                        }
+                                    } catch (e: Exception) {
+                                        println("Error de red: ${e.message}")
+                                    }
+                                }
+                            } else {
+                                println("Error al insertar de manera local en SQLite")
+                            }
                         }
                     },
                     onBack = { if (step > 1) step-- else onBackToSelector() },
@@ -1249,5 +1297,16 @@ suspend fun obtenerDireccionDesdeCoordenadas(
         }
     } catch (e: Exception) {
         "Ubicación seleccionada"
+    }
+}
+
+fun uriToByteArray(context: Context, uri: Uri): ByteArray? {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            inputStream.readBytes()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }

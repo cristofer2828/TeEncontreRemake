@@ -32,8 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
-import com.example.teencontre.data.DatabaseHelper
-import com.example.teencontre.data.MascotasAdopcionModel
+import com.example.teencontre.data.local.DatabaseHelper
+import com.example.teencontre.data.model.MascotasAdopcionModel
 
 private val FigmaBlue = Color(0xFF2196F3)
 
