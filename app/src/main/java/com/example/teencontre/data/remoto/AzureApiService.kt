@@ -17,9 +17,15 @@ import retrofit2.http.Body
 import retrofit2.http.Path
 
 import com.example.teencontre.data.model.RegisterResponse
+import com.example.teencontre.data.model.UpdateUserRequest
+import com.example.teencontre.data.model.UpdateUserResponse
+
 interface AzureApiService {
     // --- AUTH ---
-
+    @POST("api/Usuarios/update_profile.php")
+    suspend fun updateUser(
+        @Body request: UpdateUserRequest
+        ): Response<UpdateUserResponse>
     @GET("api/perdidos/usuario/{id}")
     suspend fun getPerdidosUsuario(
         @Path("id") id: Int

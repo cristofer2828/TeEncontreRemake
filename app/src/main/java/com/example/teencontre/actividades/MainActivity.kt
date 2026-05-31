@@ -69,6 +69,7 @@ import kotlinx.coroutines.withContext
 import com.example.teencontre.data.model.RegisterRequest
 import android.content.ContentValues
 import android.widget.Toast
+import com.example.teencontre.data.model.UpdateUserRequest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1985,22 +1986,141 @@ fun SettingsScreen(
 
                 onClick = {
 
-                    Toast
-                        .makeText(
-                            context,
-                            "Datos actualizados",
-                            Toast.LENGTH_SHORT
-                        )
-                        .show()
+                    val usuario =
+                        prefs.getLoggedUser()
+                            ?: return@Button
+
+                    CoroutineScope(Dispatchers.IO).launch {
+
+                        try {
+
+                            val request = UpdateUserRequest(
+
+                                id = usuario.id,
+
+                                nombre = nombre,
+
+                                telefono =
+                                    if (usuario is Usuario)
+                                        telefono
+                                    else
+                                        null,
+
+                                email = correo,
+
+                                ruc =
+                                    if (usuario is Organizacion)
+                                        usuario.ruc
+                                    else
+                                        null,
+
+                                direccion =
+                                    if (usuario is Organizacion)
+                                        usuario.direccion
+                                    else
+                                        null
+                            )
+
+                            Log.d(
+                                "UPDATE_USER",
+                                "Enviando actualización..."
+                            )
+
+                            val response =
+                                RetrofitClient
+                                    .instance
+                                    .updateUser(request)
+
+                            withContext(Dispatchers.Main) {
+
+                                if (response.isSuccessful) {
+
+                                    Log.d(
+                                        "UPDATE_USER",
+                                        "Actualización exitosa"
+                                    )
+
+                                    Toast.makeText(
+                                        context,
+                                        "Datos actualizados",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                    // Actualizar SharedPreferences
+
+                                    if (usuario is Usuario) {
+
+                                        prefs.saveLoggedUser(
+
+                                            usuario.copy(
+                                                nombre = nombre,
+                                                telefono = telefono,
+                                                email = correo
+                                            )
+                                        )
+
+                                    } else if (usuario is Organizacion) {
+
+                                        prefs.saveLoggedUser(
+
+                                            usuario.copy(
+                                                nombreOrg = nombre,
+                                                email = correo
+                                            )
+                                        )
+                                    }
+
+                                } else {
+
+                                    Log.e(
+                                        "UPDATE_USER",
+                                        "Error ${response.code()}"
+                                    )
+
+                                    Toast.makeText(
+                                        context,
+                                        "Error al actualizar",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+
+                        } catch (e: Exception) {
+
+                            withContext(Dispatchers.Main) {
+
+                                Log.e(
+                                    "UPDATE_USER",
+                                    e.message ?: "Error desconocido"
+                                )
+
+                                Toast.makeText(
+                                    context,
+                                    e.message ?: "Error desconocido",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
                 },
 
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .height(50.dp),
+
+                shape = RoundedCornerShape(10.dp),
+
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
 
             ) {
 
-                Text("APLICAR")
+                Text(
+                    text = "APLICAR",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))

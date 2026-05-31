@@ -35,7 +35,27 @@ data class Organizacion(
     override val tipo = "ORG"
 }
 
+data class UpdateUserRequest(
 
+    val id: Int,
+
+    val nombre: String,
+
+    val telefono: String?,
+
+    val email: String,
+
+    val ruc: String?,
+
+    val direccion: String?
+)
+
+data class UpdateUserResponse(
+
+    val success: Boolean,
+
+    val message: String
+)
 data class RegisterRequest(
     val nombre: String,
     val telefono: String,
