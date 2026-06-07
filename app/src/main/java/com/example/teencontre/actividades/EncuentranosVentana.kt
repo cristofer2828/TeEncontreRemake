@@ -1,5 +1,10 @@
 package com.example.teencontre.actividades
-
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.AsyncImage
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teencontre.R
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.teencontre.viewmodel.PublicacionesViewModel
 
 @Composable
 fun EncuentranosScreen(
@@ -48,7 +55,9 @@ fun EncuentranosScreen(
     onPublishClick: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
+    val publicacionesViewModel: PublicacionesViewModel = viewModel()
 
+    val publicaciones = publicacionesViewModel.publicaciones
     var mostrarFiltros by remember { mutableStateOf(false) }
 
     var desaparecido by remember { mutableStateOf(false) }
@@ -58,7 +67,47 @@ fun EncuentranosScreen(
     var perro by remember { mutableStateOf(false) }
     var gato by remember { mutableStateOf(false) }
     var otro by remember { mutableStateOf(false) }
+    val publicacionesFiltradas = publicaciones.filter { publicacion ->
 
+        val coincideEstado =
+
+            (!desaparecido && !encontrado && !adopcion)
+
+                    ||
+
+                    (desaparecido && publicacion.tipo == "PERDIDA")
+
+                    ||
+
+                    (encontrado && publicacion.tipo == "ENCONTRADA")
+
+                    ||
+
+                    (adopcion && publicacion.tipo == "ADOPCION")
+
+        val coincideTipo =
+
+            (!perro && !gato && !otro)
+
+                    ||
+
+                    (perro && publicacion.especie.equals("Perro", true))
+
+                    ||
+
+                    (gato && publicacion.especie.equals("Gato", true))
+
+                    ||
+
+                    (
+                            otro &&
+                                    !publicacion.especie.equals("Perro", true)
+                                    &&
+                                    !publicacion.especie.equals("Gato", true)
+                            )
+
+        coincideEstado && coincideTipo
+    }
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -163,99 +212,108 @@ fun EncuentranosScreen(
                     }
                 }
             }
-
-            // LISTA DE ANUNCIOS
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                modifier = Modifier.verticalScroll(
+                    rememberScrollState()
+                )
             ) {
+
+                publicacionesFiltradas.forEach { publicacion ->
+
+                    val colorEstado = when (publicacion.tipo) {
+                        "PERDIDA" -> Color(0xFFE53935)
+                        "ENCONTRADA" -> Color(0xFF43A047)
+                        "ADOPCION" -> Color(0xFF1E88E5)
+                        else -> MaterialTheme.colorScheme.primary
+                    }
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                             .clickable {
                                 onNavigate("detalle_anuncio")
                             },
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(18.dp),
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 4.dp
+                        )
                     ) {
-                        Row(modifier = Modifier.padding(10.dp)) {
 
-                            Image(
-                                painter = painterResource(id = R.drawable.mascota1),
+                        Row(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+
+                            AsyncImage(
+                                model = publicacion.foto,
                                 contentDescription = null,
                                 modifier = Modifier
-                                    .size(70.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
+                                    .size(95.dp)
+                                    .clip(RoundedCornerShape(14.dp)),
                                 contentScale = ContentScale.Crop
                             )
 
                             Column(
-                                modifier = Modifier.padding(start = 10.dp)
-                            ) {
-                                Text("[DESCRIPCION]", fontWeight = FontWeight.Bold)
-                                Text("ESTADO", color = Color(0xFF7C4DFF))
-                                Text("Ubicación, fecha", fontSize = 12.sp)
-                            }
-                        }
-                    }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                            .clickable {
-                                onNavigate("detalle_anuncio")
-                            },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(10.dp)) {
-
-                            Image(
-                                painter = painterResource(id = R.drawable.mascota2),
-                                contentDescription = null,
                                 modifier = Modifier
-                                    .size(70.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-
-                            Column(
-                                modifier = Modifier.padding(start = 10.dp)
+                                    .padding(start = 12.dp)
+                                    .weight(1f)
                             ) {
-                                Text("[DESCRIPCION]", fontWeight = FontWeight.Bold)
-                                Text("ESTADO", color = Color(0xFF7C4DFF))
-                                Text("Ubicación, fecha", fontSize = 12.sp)
+
+                                Text(
+                                    text = publicacion.nombreMascota
+                                        ?: publicacion.especie,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(4.dp)
+                                )
+
+                                AssistChip(
+                                    onClick = {},
+                                    label = {
+                                        Text(publicacion.tipo)
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = colorEstado.copy(alpha = 0.15f),
+                                        labelColor = colorEstado
+                                    )
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(8.dp)
+                                )
+
+                                Text(
+                                    text = publicacion.descripcion,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontSize = 14.sp
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(8.dp)
+                                )
+
+                                Text(
+                                    text = "📍 ${publicacion.lugar ?: "Ubicación no registrada"}",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+
+                                Text(
+                                    text = "🐾 ${publicacion.especie} • ${publicacion.genero}",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
                             }
                         }
                     }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                            .clickable {
-                                onNavigate("detalle_anuncio")
-                            },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(10.dp)) {
-
-                            Image(
-                                painter = painterResource(id = R.drawable.mascota3),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(70.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-
-                            Column(
-                                modifier = Modifier.padding(start = 10.dp)
-                            ) {
-                                Text("[DESCRIPCION]", fontWeight = FontWeight.Bold)
-                                Text("ESTADO", color = Color(0xFF7C4DFF))
-                                Text("Ubicación, fecha", fontSize = 12.sp)
-                            }
-                        }
-                    }
+                }
             }
+
+
         }
     }
 }

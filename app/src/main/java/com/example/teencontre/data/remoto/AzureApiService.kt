@@ -14,6 +14,7 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import com.example.teencontre.data.model.LoginRequest
 import com.example.teencontre.data.model.LoginResponse
+import com.example.teencontre.data.model.MostrarPublicaciones
 import com.example.teencontre.data.model.RegisterRequest
 import retrofit2.http.Body
 import retrofit2.http.Path
@@ -59,7 +60,6 @@ interface AzureApiService {
         @Part("correo") correo: RequestBody
     ): Response<ApiResponse>
 
-
     @GET("api/Publicaciones/obtener_perdidos_usuario.php")
     suspend fun getPerdidosUsuario(
         @Query("idUsuario") id: Int
@@ -74,9 +74,6 @@ interface AzureApiService {
     suspend fun eliminarPerdido(
         @Body request: EliminarRequest
     ): Response<ApiResponse>
-
-    @GET("api/Publicaciones/obtener_perdidos.php")
-    suspend fun obtenerPerdidos(): List<MascotasPerdidasModel>
 
     @POST("api/Publicaciones/eliminar_encontrado.php")
     suspend fun eliminarEncontrado(
@@ -113,11 +110,6 @@ interface AzureApiService {
         @Query("idUsuario") id: Int
     ): Response<List<MascotasEncontradasModel>>
 
-    @GET("api/Publicaciones/obtener_encontrados.php")
-    suspend fun getEncontradosGlobal(): List<MascotasEncontradasModel>
-
-
-
     @Multipart
     @POST("api/Publicaciones/insertar_adopcion.php")
     suspend fun registrarMascotaAdopcion(
@@ -137,15 +129,6 @@ interface AzureApiService {
         @Part("correo") correo: RequestBody
     ): Response<ApiResponse>
 
-    @GET("api/Publicaciones/obtener_adopciones.php")
-    suspend fun obtenerMascotasAdopcion(): Response<AdopcionesResponse>
-    data class AdopcionesResponse(
-        val success: Boolean,
-        val data: List<MascotasAdopcionModel>,
-        val error: String? = null
-    )
-
-
     @GET("api/Publicaciones/obtener_adopciones_usuario.php")
     suspend fun obtenerAdopcionesPorUsuario(
         @Query("idUsuario") id: Int
@@ -156,42 +139,10 @@ interface AzureApiService {
         @Body mascota: MascotasAdopcionModel
     ): Response<ApiResponse>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // --- ADOPCIONES ---
-    @GET("api/adopciones")
-    suspend fun getTodasLasAdopciones(): List<MascotasAdopcionModel>
-
-    @Multipart
-    @POST("api/adopciones")
-    suspend fun subirAdopcion(
-        @Part("idUsuario") idUsuario: RequestBody,
-        @Part("especie") especie: RequestBody,
-        @Part("genero") genero: RequestBody,
-        @Part("raza") raza: RequestBody,
-        @Part("vacunado") vacunado: RequestBody,
-        @Part("esterilizado") esterilizado: RequestBody,
-        @Part("desparasitado") desparasitado: RequestBody,
-        @Part("tamano") tamano: RequestBody,
-        @Part("temperamento") temperamento: RequestBody,
-        @Part("descripcion") descripcion: RequestBody,
-        @Part("nombreOrganizacion") nombreOrganizacion: RequestBody,
-        @Part("telefono") telefono: RequestBody,
-        @Part("correo") correo: RequestBody,
-        @Part foto: MultipartBody.Part?
-    ): Response<Void>
+    //y ahora parte donde muestra publi
+    @GET("api/Publicaciones/listarPublicaciones.php")
+    suspend fun obtenerPublicaciones():
+            Response<List<MostrarPublicaciones>>
 
 
 }

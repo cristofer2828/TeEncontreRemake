@@ -150,7 +150,6 @@ fun DetalleAnuncioScreen(
 
             Divider()
 
-            InfoRow("ID Anuncio", "4257893")
             InfoRow("Raza", "-")
             InfoRow("Género", "Macho")
             InfoRow("Fecha anuncio", "[FECHA]")
