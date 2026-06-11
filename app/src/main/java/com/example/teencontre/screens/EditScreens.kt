@@ -28,10 +28,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 
-// ============================================================================
-// 1. PANTALLA: EDITAR MASCOTA PERDIDA
-// ============================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPerdidoScreen(idMascota: Int, onBack: () -> Unit) {
@@ -108,6 +108,16 @@ fun EditPerdidoScreen(idMascota: Int, onBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
+
+                        if (!hayInternet(context)) {
+                            Toast.makeText(
+                                context,
+                                "Necesitas conexión a internet para editar la publicación",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@Button
+                        }
+
                         val prefs = PreferenceManager(context)
                         val usuario = prefs.getLoggedUser()
 
@@ -118,7 +128,7 @@ fun EditPerdidoScreen(idMascota: Int, onBack: () -> Unit) {
                             especie = especie,
                             genero = genero,
                             raza = raza,
-                            foto = fotoBytes as Any?, // Adaptado de forma segura a Any?
+                            foto = fotoBytes,
                             fecha = fecha,
                             lugar = lugar,
                             descripcion = descripcion,
@@ -128,33 +138,58 @@ fun EditPerdidoScreen(idMascota: Int, onBack: () -> Unit) {
                         )
 
                         coroutineScope.launch(Dispatchers.IO) {
-                            // SQLite Local
-                            dbHelper.updatePerdido(updatedMascota)
+
                             try {
+                                Log.d("EDITAR", "Enviando datos a Azure")
+                                Log.d("EDITAR", "ID enviado = ${updatedMascota.id}")
+                                Log.d("EDITAR", "Nombre = ${updatedMascota.nombreM}")
                                 val response = RetrofitClient.instance.editarPerdido(updatedMascota)
+
+                                Log.d("EDITAR", "Código: ${response.code()}")
+                                Log.d("EDITAR", "Body: ${response.body()}")
+                                Log.d("EDITAR", "ErrorBody: ${response.errorBody()?.string()}")
+
                                 withContext(Dispatchers.Main) {
+
                                     if (response.isSuccessful) {
-                                        Toast.makeText(context, "Cambios guardados en Azure correctamente", Toast.LENGTH_SHORT).show()
-                                        onBack()
+
+                                        Toast.makeText(
+                                            context,
+                                            "Guardado con éxito",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
+                                        onBack() // volver al Profile
+
                                     } else {
-                                        Log.e("AZURE", "Error HTTP: ${response.code()}")
-                                        Toast.makeText(context, "Error en el servidor de Azure", Toast.LENGTH_LONG).show()
+
+                                        Toast.makeText(
+                                            context,
+                                            "Error al guardar los cambios",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
+
                             } catch (e: Exception) {
-                                Log.e("AZURE", "Error: ${e.message}")
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "Error de conexión, guardado solo local", Toast.LENGTH_LONG).show()
-                                    onBack()
-                                }
+                                Log.e("EDITAR", "EXCEPCION: ${e.message}", e)
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF7C4DFF)
+                    ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Guardar Cambios", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Guardar Cambios",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -234,15 +269,27 @@ fun EditEncontradaScreen(idMascota: Int, onBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
+
+                        if (!hayInternet(context)) {
+                            Toast.makeText(
+                                context,
+                                "Necesitas conexión a internet para editar la publicación",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@Button
+                        }
+
                         val prefs = PreferenceManager(context)
                         val usuario = prefs.getLoggedUser()
 
                         val updatedMascota = MascotasEncontradasModel(
                             id = idMascota,
-                            idUsuario = usuario?.id ?: 0, // Corregido idUsuario obtenido de preferencias
+                            idUsuario = usuario?.id ?: 0,
                             especie = especie,
                             genero = genero,
-                            foto = fotoBytes as Any?, // Sincronizado tipo Any?
+                            foto = fotoBytes?.let {
+                                android.util.Base64.encodeToString(it, android.util.Base64.DEFAULT)
+                            },
                             fecha = fecha,
                             lugar = lugar,
                             descripcion = descripcion,
@@ -252,24 +299,53 @@ fun EditEncontradaScreen(idMascota: Int, onBack: () -> Unit) {
                         )
 
                         coroutineScope.launch(Dispatchers.IO) {
-                            // SQLite Local
-                            dbHelper.updateEncontrada(updatedMascota)
+
                             try {
-                                // CORREGIDO: Se añadió la sincronización con Azure para Encontrados
-                                val response = RetrofitClient.instance.editarEncontrado(updatedMascota)
+
+                                val response =
+                                    RetrofitClient.instance.editarEncontrado(updatedMascota)
+
                                 withContext(Dispatchers.Main) {
+
                                     if (response.isSuccessful) {
-                                        Toast.makeText(context, "Publicación actualizada en Azure", Toast.LENGTH_SHORT).show()
+
+                                        Toast.makeText(
+                                            context,
+                                            "Publicación actualizada correctamente",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
                                         onBack()
+
                                     } else {
-                                        Toast.makeText(context, "Error en el servidor de Azure", Toast.LENGTH_LONG).show()
+
+                                        Log.e(
+                                            "AZURE",
+                                            "Error HTTP: ${response.code()}"
+                                        )
+
+                                        Toast.makeText(
+                                            context,
+                                            "Error del servidor",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
+
                             } catch (e: Exception) {
-                                Log.e("AZURE", "Error: ${e.message}")
+
+                                Log.e(
+                                    "AZURE",
+                                    "Error: ${e.message}"
+                                )
+
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "Error de red, guardado localmente", Toast.LENGTH_LONG).show()
-                                    onBack()
+
+                                    Toast.makeText(
+                                        context,
+                                        "Error de conexión",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             }
                         }
@@ -387,12 +463,22 @@ fun EditAdopcionScreen(idMascota: Int, onBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
+
+                        if (!hayInternet(context)) {
+                            Toast.makeText(
+                                context,
+                                "Necesitas conexión a internet para editar",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@Button
+                        }
+
                         val prefs = PreferenceManager(context)
                         val usuario = prefs.getLoggedUser()
 
                         val updatedMascota = MascotasAdopcionModel(
                             id = idMascota,
-                            idUsuario = usuario?.id ?: 0, // Corregido idUsuario obtenido de preferencias
+                            idUsuario = usuario?.id ?: 0,
                             especie = especie,
                             genero = genero,
                             raza = raza,
@@ -401,7 +487,9 @@ fun EditAdopcionScreen(idMascota: Int, onBack: () -> Unit) {
                             desparasitado = desparasitado,
                             tamano = tamano,
                             temperamento = temperamento,
-                            foto = fotoBytes as Any?, // Sincronizado tipo Any?
+                            foto = fotoBytes?.let {
+                                android.util.Base64.encodeToString(it, android.util.Base64.DEFAULT)
+                            },
                             descripcion = descripcion,
                             nombreOrganizacion = nombreOrganizacion,
                             telefono = telefono,
@@ -409,24 +497,45 @@ fun EditAdopcionScreen(idMascota: Int, onBack: () -> Unit) {
                         )
 
                         coroutineScope.launch(Dispatchers.IO) {
-                            // SQLite Local
-                            dbHelper.updateAdopcion(updatedMascota)
+
                             try {
-                                // CORREGIDO: Se añadió la sincronización con Azure para Adopciones
-                                val response = RetrofitClient.instance.editarAdopcion(updatedMascota)
+
+                                val response =
+                                    RetrofitClient.instance.editarAdopcion(updatedMascota)
+
                                 withContext(Dispatchers.Main) {
+
                                     if (response.isSuccessful) {
-                                        Toast.makeText(context, "Publicación actualizada en Azure", Toast.LENGTH_SHORT).show()
+
+                                        Toast.makeText(
+                                            context,
+                                            "Publicación actualizada correctamente",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
                                         onBack()
+
                                     } else {
-                                        Toast.makeText(context, "Error en el servidor de Azure", Toast.LENGTH_LONG).show()
+
+                                        Toast.makeText(
+                                            context,
+                                            "Error del servidor",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
+
                             } catch (e: Exception) {
+
                                 Log.e("AZURE", "Error: ${e.message}")
+
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "Error de red, guardado localmente", Toast.LENGTH_LONG).show()
-                                    onBack()
+
+                                    Toast.makeText(
+                                        context,
+                                        "Error de conexión",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             }
                         }
@@ -440,4 +549,15 @@ fun EditAdopcionScreen(idMascota: Int, onBack: () -> Unit) {
             }
         }
     }
+}
+
+fun hayInternet(context: Context): Boolean {
+    val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities =
+        connectivityManager.getNetworkCapabilities(network) ?: return false
+
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }

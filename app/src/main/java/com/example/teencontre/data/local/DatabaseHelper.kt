@@ -13,7 +13,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         private const val DATABASE_NAME = "teencontre_app.db"
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 4
 
         // ---- TABLA PERDIDOS ----
         const val TABLE_PERDIDOS = "addPerdido"
@@ -67,7 +67,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     override fun onCreate(db: SQLiteDatabase?) {
         val createPerdidos = """
             CREATE TABLE $TABLE_PERDIDOS (
-                $PERDIDO_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $PERDIDO_ID INTEGER PRIMARY KEY,
                 $PERDIDO_USER_ID INTEGER,
                 $PERDIDO_NOMBRE TEXT, $PERDIDO_ESPECIE TEXT, $PERDIDO_GENERO TEXT, $PERDIDO_RAZA TEXT,
                 $PERDIDO_FOTO BLOB, $PERDIDO_FECHA TEXT, $PERDIDO_LUGAR TEXT, $PERDIDO_DESCRIPCION TEXT,
@@ -77,7 +77,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         val createEncontrados = """
             CREATE TABLE $TABLE_ENCONTRADOS (
-                $ENCONTRADO_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $ENCONTRADO_ID INTEGER PRIMARY KEY,
                 $ENCONTRADO_USER_ID INTEGER,
                 $ENCONTRADO_ESPECIE TEXT, $ENCONTRADO_GENERO TEXT, $ENCONTRADO_FOTO BLOB,
                 $ENCONTRADO_FECHA TEXT, $ENCONTRADO_LUGAR TEXT, $ENCONTRADO_DESCRIPCION TEXT,
@@ -87,7 +87,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         val createAdopcion = """
             CREATE TABLE $TABLE_ADOPCION (
-                $ADOPCION_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $ADOPCION_ID INTEGER PRIMARY KEY,
                 $ADOPCION_USER_ID INTEGER,
                 $ADOPCION_ESPECIE TEXT, $ADOPCION_GENERO TEXT, $ADOPCION_RAZA TEXT,
                 $ADOPCION_VACUNADO INTEGER, $ADOPCION_ESTERILIZADO INTEGER, $ADOPCION_DESPARASITADO INTEGER,

@@ -76,6 +76,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import coil.compose.AsyncImage
 import com.example.teencontre.data.model.EliminarRequest
+import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.codec.binary.Base64
+import androidx.core.database.sqlite.transaction
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1140,13 +1142,28 @@ fun ProfileScreen(
 
     var refreshTrigger by remember { mutableIntStateOf(0) }
     val apiService = RetrofitClient.instance
+    val db = dbHelper.readableDatabase
 
+    val cursor = db.rawQuery(
+        "SELECT * FROM ${DatabaseHelper.TABLE_PERDIDOS}",
+        null
+    )
+
+    if (cursor.moveToFirst()) {
+        do {
+            Log.d(
+                "CACHE_PERDIDOS",
+                "ID=${cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.PERDIDO_ID))} " +
+                        "Usuario=${cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.PERDIDO_USER_ID))} " +
+                        "Nombre=${cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.PERDIDO_NOMBRE))}"
+            )
+        } while (cursor.moveToNext())
+    }
+
+    cursor.close()
     LaunchedEffect(refreshTrigger) {
         withContext(Dispatchers.IO) {
             try {
-                // =========================================================
-                // 1. ONLINE → CONSULTA DIRECTA DESDE AZURE (CON RETROFIT RESPONSE)
-                // =========================================================
                 val idUser = usuarioLogueado?.id ?: 0
 
                 Log.d("PROBANDO_RED", "Llamando a Perdidos de Azure...")
@@ -1154,6 +1171,12 @@ fun ProfileScreen(
                 val perdidosOnline = if (responsePerdidos.isSuccessful) {
                     responsePerdidos.body() ?: emptyList()
                 } else emptyList()
+                perdidosOnline.forEach {
+                    Log.d(
+                        "AZURE_DEBUG",
+                        "ID=${it.id}, Usuario=${it.idUsuario}, Nombre=${it.nombreM}"
+                    )
+                }
 
                 Log.d("PROBANDO_RED", "Llamando a Encontrados de Azure...")
                 val responseEncontrados = apiService.getEncontradosUsuario(idUser)
@@ -1168,6 +1191,7 @@ fun ProfileScreen(
                 val adopcionesOnline = if (responseAdopcion.isSuccessful) {
                     // responseAdopcion.body() ya contiene directamente la List<MascotasAdopcionModel>
                     responseAdopcion.body() ?: emptyList()
+
                 } else {
                     Log.e("PROBANDO_RED", "Error en respuesta de adopciones: ${responseAdopcion.code()}")
                     emptyList()
@@ -1179,113 +1203,165 @@ fun ProfileScreen(
                     listaEncontrados = encontradosOnline
                     listaAdopciones = adopcionesOnline
                 }
-
-                // =========================================================
-                // 2. ACTUALIZAR CACHÉ SQLITE (SOBREESCRITURA COMPLETA DESDE LA NUBE)
-                // =========================================================
                 val db = dbHelper.writableDatabase
-                db.beginTransaction()
-                try {
-                    // Sincronizar Caché de Perdidos
-                    db.delete(DatabaseHelper.TABLE_PERDIDOS, "${DatabaseHelper.PERDIDO_USER_ID} = ?", arrayOf(idUserActual.toString()))
-                    perdidosOnline.forEach { mascota ->
-                        val values = ContentValues().apply {
-                            put(DatabaseHelper.PERDIDO_ID, mascota.id)
-                            put(DatabaseHelper.PERDIDO_USER_ID, mascota.idUsuario)
-                            put(DatabaseHelper.PERDIDO_NOMBRE, mascota.nombreM ?: "")
-                            put(DatabaseHelper.PERDIDO_ESPECIE, mascota.especie ?: "")
-                            put(DatabaseHelper.PERDIDO_GENERO, mascota.genero ?: "")
-                            put(DatabaseHelper.PERDIDO_RAZA, mascota.raza ?: "")
+                db.transaction {
+                    try {
+                        // Sincronizar Caché de Perdidos
+                        delete(
+                            DatabaseHelper.TABLE_PERDIDOS,
+                            "${DatabaseHelper.PERDIDO_USER_ID} = ?",
+                            arrayOf(idUserActual.toString())
+                        )
+                        perdidosOnline.forEach { mascota ->
+                            val values = ContentValues().apply {
+                                put(DatabaseHelper.PERDIDO_ID, mascota.id)
+                                put(DatabaseHelper.PERDIDO_USER_ID, mascota.idUsuario)
+                                put(DatabaseHelper.PERDIDO_NOMBRE, mascota.nombreM ?: "")
+                                put(DatabaseHelper.PERDIDO_ESPECIE, mascota.especie ?: "")
+                                put(DatabaseHelper.PERDIDO_GENERO, mascota.genero ?: "")
+                                put(DatabaseHelper.PERDIDO_RAZA, mascota.raza ?: "")
 
-                            // CORREGIDO: Casteo seguro con 'as Any?' para evitar error de tipos incompatibles
-                            val fotoBytes: ByteArray? = when (val fotoRaw = mascota.foto as Any?) {
-                                is ByteArray -> fotoRaw
-                                is String -> if (fotoRaw.isNotEmpty()) android.util.Base64.decode(fotoRaw, android.util.Base64.DEFAULT) else null
-                                else -> null
+                                val fotoBytes: ByteArray? = when (val fotoRaw = mascota.foto) {
+                                    is ByteArray -> fotoRaw
+                                    else -> null
+                                }
+                                put(DatabaseHelper.PERDIDO_FOTO, fotoBytes)
+
+                                // Aquí continúa el resto de tus campos (fecha, lugar, descripción, etc.)
+                                put(DatabaseHelper.PERDIDO_FECHA, mascota.fecha ?: "")
+                                put(DatabaseHelper.PERDIDO_LUGAR, mascota.lugar ?: "")
+                                put(DatabaseHelper.PERDIDO_DESCRIPCION, mascota.descripcion ?: "")
+                                put(DatabaseHelper.PERDIDO_CONTACTO, mascota.contacto ?: "")
+                                put(DatabaseHelper.PERDIDO_TELEFONO, mascota.telefono ?: "")
+                                put(DatabaseHelper.PERDIDO_CORREO, mascota.correo ?: "")
                             }
-                            put(DatabaseHelper.PERDIDO_FOTO, fotoBytes)
-
-                            // Aquí continúa el resto de tus campos (fecha, lugar, descripción, etc.)
-                            put(DatabaseHelper.PERDIDO_FECHA, mascota.fecha ?: "")
-                            put(DatabaseHelper.PERDIDO_LUGAR, mascota.lugar ?: "")
-                            put(DatabaseHelper.PERDIDO_DESCRIPCION, mascota.descripcion ?: "")
-                            put(DatabaseHelper.PERDIDO_CONTACTO, mascota.contacto ?: "")
-                            put(DatabaseHelper.PERDIDO_TELEFONO, mascota.telefono ?: "")
-                            put(DatabaseHelper.PERDIDO_CORREO, mascota.correo ?: "")
+                            Log.d(
+                                "SYNC_AZURE",
+                                "ID=${mascota.id} FOTO=${mascota.foto}"
+                            )
+                            Log.d(
+                                "SYNC_AZURE",
+                                "TOTAL PERDIDOS=${perdidosOnline.size}"
+                            )
+                            insertWithOnConflict(
+                                DatabaseHelper.TABLE_PERDIDOS,
+                                null,
+                                values,
+                                SQLiteDatabase.CONFLICT_REPLACE
+                            )
                         }
-                        db.insertWithOnConflict(DatabaseHelper.TABLE_PERDIDOS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
-                    }
 
-                    // Sincronizar Caché de Encontrados
-                    db.delete(DatabaseHelper.TABLE_ENCONTRADOS, "${DatabaseHelper.ENCONTRADO_USER_ID} = ?", arrayOf(idUserActual.toString()))
-                    encontradosOnline.forEach { mascota ->
-                        val values = ContentValues().apply {
-                            put(DatabaseHelper.ENCONTRADO_ID, mascota.id)
-                            put(DatabaseHelper.ENCONTRADO_USER_ID, mascota.idUsuario)
-                            put(DatabaseHelper.ENCONTRADO_ESPECIE, mascota.especie ?: "")
-                            put(DatabaseHelper.ENCONTRADO_GENERO, mascota.genero ?: "")
+                        // Sincronizar Caché de Encontrados
+                        delete(
+                            DatabaseHelper.TABLE_ENCONTRADOS,
+                            "${DatabaseHelper.ENCONTRADO_USER_ID} = ?",
+                            arrayOf(idUserActual.toString())
+                        )
+                        encontradosOnline.forEach { mascota ->
+                            val values = ContentValues().apply {
+                                put(DatabaseHelper.ENCONTRADO_ID, mascota.id)
+                                put(DatabaseHelper.ENCONTRADO_USER_ID, mascota.idUsuario)
+                                put(DatabaseHelper.ENCONTRADO_ESPECIE, mascota.especie ?: "")
+                                put(DatabaseHelper.ENCONTRADO_GENERO, mascota.genero ?: "")
 
-                            // CORREGIDO: Añadido 'as Any?' para permitir la evaluación dinámica de tipo
-                            val fotoBytes: ByteArray? = when (val fotoRaw = mascota.foto as Any?) {
-                                is ByteArray -> fotoRaw
-                                is String -> if (fotoRaw.isNotEmpty()) android.util.Base64.decode(fotoRaw, android.util.Base64.DEFAULT) else null
-                                else -> null
+                                // CORREGIDO: Añadido 'as Any?' para permitir la evaluación dinámica de tipo
+                                val fotoBytes: ByteArray? = when (val fotoRaw = mascota.foto) {
+                                    is ByteArray -> fotoRaw
+                                    else -> null
+                                }
+                                put(DatabaseHelper.ENCONTRADO_FOTO, fotoBytes)
+
+                                put(DatabaseHelper.ENCONTRADO_FECHA, mascota.fecha ?: "")
+                                put(DatabaseHelper.ENCONTRADO_LUGAR, mascota.lugar ?: "")
+                                put(
+                                    DatabaseHelper.ENCONTRADO_DESCRIPCION,
+                                    mascota.descripcion ?: ""
+                                )
+                                put(DatabaseHelper.ENCONTRADO_CONTACTO, mascota.contacto ?: "")
+                                put(DatabaseHelper.ENCONTRADO_TELEFONO, mascota.telefono ?: "")
+                                put(DatabaseHelper.ENCONTRADO_CORREO, mascota.correo ?: "")
                             }
-                            put(DatabaseHelper.ENCONTRADO_FOTO, fotoBytes)
-
-                            put(DatabaseHelper.ENCONTRADO_FECHA, mascota.fecha ?: "")
-                            put(DatabaseHelper.ENCONTRADO_LUGAR, mascota.lugar ?: "")
-                            put(DatabaseHelper.ENCONTRADO_DESCRIPCION, mascota.descripcion ?: "")
-                            put(DatabaseHelper.ENCONTRADO_CONTACTO, mascota.contacto ?: "")
-                            put(DatabaseHelper.ENCONTRADO_TELEFONO, mascota.telefono ?: "")
-                            put(DatabaseHelper.ENCONTRADO_CORREO, mascota.correo ?: "")
+                            insertWithOnConflict(
+                                DatabaseHelper.TABLE_ENCONTRADOS,
+                                null,
+                                values,
+                                SQLiteDatabase.CONFLICT_REPLACE
+                            )
                         }
-                        db.insertWithOnConflict(DatabaseHelper.TABLE_ENCONTRADOS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
-                    }
 
-                    // Sincronizar Caché de Adopciones
-                    db.delete(DatabaseHelper.TABLE_ADOPCION, "${DatabaseHelper.ADOPCION_USER_ID} = ?", arrayOf(idUserActual.toString()))
-                    adopcionesOnline.forEach { mascota ->
-                        val values = ContentValues().apply {
-                            put(DatabaseHelper.ADOPCION_ID, mascota.id)
-                            put(DatabaseHelper.ADOPCION_USER_ID, mascota.idUsuario)
-                            put(DatabaseHelper.ADOPCION_ESPECIE, mascota.especie ?: "")
-                            put(DatabaseHelper.ADOPCION_GENERO, mascota.genero ?: "")
-                            put(DatabaseHelper.ADOPCION_RAZA, mascota.raza ?: "")
-                            put(DatabaseHelper.ADOPCION_VACUNADO, if (mascota.vacunado) 1 else 0)
-                            put(DatabaseHelper.ADOPCION_ESTERILIZADO, if (mascota.esterilizado) 1 else 0)
-                            put(DatabaseHelper.ADOPCION_DESPARASITADO, if (mascota.desparasitado) 1 else 0)
-                            put(DatabaseHelper.ADOPCION_TAMANO, mascota.tamano ?: "")
-                            put(DatabaseHelper.ADOPCION_TEMPERAMENTO, mascota.temperamento ?: "")
+                        // Sincronizar Caché de Adopciones
+                        delete(
+                            DatabaseHelper.TABLE_ADOPCION,
+                            "${DatabaseHelper.ADOPCION_USER_ID} = ?",
+                            arrayOf(idUserActual.toString())
+                        )
+                        adopcionesOnline.forEach { mascota ->
+                            val values = ContentValues().apply {
+                                put(DatabaseHelper.ADOPCION_ID, mascota.id)
+                                put(DatabaseHelper.ADOPCION_USER_ID, mascota.idUsuario)
+                                put(DatabaseHelper.ADOPCION_ESPECIE, mascota.especie ?: "")
+                                put(DatabaseHelper.ADOPCION_GENERO, mascota.genero ?: "")
+                                put(DatabaseHelper.ADOPCION_RAZA, mascota.raza ?: "")
+                                put(
+                                    DatabaseHelper.ADOPCION_VACUNADO,
+                                    if (mascota.vacunado) 1 else 0
+                                )
+                                put(
+                                    DatabaseHelper.ADOPCION_ESTERILIZADO,
+                                    if (mascota.esterilizado) 1 else 0
+                                )
+                                put(
+                                    DatabaseHelper.ADOPCION_DESPARASITADO,
+                                    if (mascota.desparasitado) 1 else 0
+                                )
+                                put(DatabaseHelper.ADOPCION_TAMANO, mascota.tamano ?: "")
+                                put(
+                                    DatabaseHelper.ADOPCION_TEMPERAMENTO,
+                                    mascota.temperamento ?: ""
+                                )
 
-                            val fotoBytes: ByteArray? = when (val fotoRaw = mascota.foto as Any?) {
-                                is ByteArray -> fotoRaw
-                                is String -> if (fotoRaw.isNotEmpty()) android.util.Base64.decode(fotoRaw, android.util.Base64.DEFAULT) else null
-                                else -> null
+                                val fotoBytes: ByteArray? = when (val fotoRaw = mascota.foto) {
+                                    is ByteArray -> fotoRaw
+                                    else -> null
+                                }
+                                put(DatabaseHelper.ADOPCION_FOTO, fotoBytes)
+
+                                put(DatabaseHelper.ADOPCION_DESCRIPCION, mascota.descripcion ?: "")
+                                put(
+                                    DatabaseHelper.ADOPCION_ORGANIZACION,
+                                    mascota.nombreOrganizacion ?: ""
+                                )
+                                put(DatabaseHelper.ADOPCION_TELEFONO, mascota.telefono ?: "")
+                                put(DatabaseHelper.ADOPCION_CORREO, mascota.correo ?: "")
                             }
-                            put(DatabaseHelper.ADOPCION_FOTO, fotoBytes)
-
-                            put(DatabaseHelper.ADOPCION_DESCRIPCION, mascota.descripcion ?: "")
-                            put(DatabaseHelper.ADOPCION_ORGANIZACION, mascota.nombreOrganizacion ?: "")
-                            put(DatabaseHelper.ADOPCION_TELEFONO, mascota.telefono ?: "")
-                            put(DatabaseHelper.ADOPCION_CORREO, mascota.correo ?: "")
+                            insertWithOnConflict(
+                                DatabaseHelper.TABLE_ADOPCION,
+                                null,
+                                values,
+                                SQLiteDatabase.CONFLICT_REPLACE
+                            )
                         }
-                        db.insertWithOnConflict(DatabaseHelper.TABLE_ADOPCION, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+                        val c = rawQuery(
+                            "SELECT id,idUsuario,nombreM FROM addPerdido WHERE idUsuario=?",
+                            arrayOf(idUserActual.toString())
+                        )
+
+                        while (c.moveToNext()) {
+                            Log.d(
+                                "CACHE_GUARDADA",
+                                "ID=${c.getInt(0)} Usuario=${c.getInt(1)} Nombre=${c.getString(2)}"
+                            )
+                        }
+                        c.close()
+                        Log.d("SYNC", "Datos localmente sincronizados exitosamente desde Azure.")
+                    } finally {
                     }
-                    db.setTransactionSuccessful()
-                    Log.d("SYNC", "Datos localmente sincronizados exitosamente desde Azure.")
-                } finally {
-                    db.endTransaction()
                 }
 
             } catch (e: Exception) {
-                // =========================================================
-                // 3. OFFLINE → SQLITE LOCAL (Si falla la conexión de red)
-                // =========================================================
                 Log.e("OFFLINE", "Sin internet, cargando datos locales filtrados por usuario", e)
                 val db = dbHelper.readableDatabase
 
-                // Cargar Perdidos locales
                 val listaP = mutableListOf<MascotasPerdidasModel>()
                 val cursorP = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_PERDIDOS} WHERE ${DatabaseHelper.PERDIDO_USER_ID} = ?", arrayOf(idUserActual.toString()))
                 if (cursorP.moveToFirst()) {
@@ -1309,7 +1385,6 @@ fun ProfileScreen(
                 }
                 cursorP.close()
 
-                // Cargar Encontrados locales
                 val listaE = mutableListOf<MascotasEncontradasModel>()
                 val cursorE = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_ENCONTRADOS} WHERE ${DatabaseHelper.ENCONTRADO_USER_ID} = ?", arrayOf(idUserActual.toString()))
                 if (cursorE.moveToFirst()) {
@@ -1331,7 +1406,6 @@ fun ProfileScreen(
                 }
                 cursorE.close()
 
-                // Cargar Adopciones locales
                 val listaA = mutableListOf<MascotasAdopcionModel>()
                 val cursorA = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_ADOPCION} WHERE ${DatabaseHelper.ADOPCION_USER_ID} = ?", arrayOf(idUserActual.toString()))
                 if (cursorA.moveToFirst()) {
@@ -1412,7 +1486,6 @@ fun ProfileScreen(
             }
 
             if (totalAnuncios > 0) {
-                // 1. RENDER PERDIDOS
                 items(listaPerdidos) { mascota ->
                     AdItemCard(
                         description = mascota.nombreM.ifEmpty { "Sin nombre" },
@@ -1521,7 +1594,6 @@ fun ProfileScreen(
                     )
                 }
 
-                // 3. RENDER ADOPCIONES
                 items(listaAdopciones) { mascota ->
                     val esp = mascota.especie.ifEmpty { "Mascota" }
                     val raz = mascota.raza.ifEmpty { "Mestizo" }
