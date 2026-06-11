@@ -84,3 +84,10 @@ data class RegisterResponse(
     val error: String? = null
 )
 
+data class Comentario(
+    val id_publicacion: Int? = null,
+    val tipo_publicacion: String,
+    val nombre_usuario: String,
+    val mensaje: String,
+    val tiempo: String? = null
+)

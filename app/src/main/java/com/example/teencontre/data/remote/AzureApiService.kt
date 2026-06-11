@@ -14,17 +14,14 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import com.example.teencontre.data.model.LoginRequest
 import com.example.teencontre.data.model.LoginResponse
+import com.example.teencontre.data.model.Comentario
 import com.example.teencontre.data.model.MostrarPublicaciones
 import com.example.teencontre.data.model.RegisterRequest
 import retrofit2.http.Body
-import retrofit2.http.Path
-
 import com.example.teencontre.data.model.RegisterResponse
 import com.example.teencontre.data.model.UpdateUserRequest
 import com.example.teencontre.data.model.UpdateUserResponse
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
-import retrofit2.http.PUT
+
 import retrofit2.http.Query
 
 interface AzureApiService {
@@ -143,6 +140,18 @@ interface AzureApiService {
     @GET("api/Publicaciones/listarPublicaciones.php")
     suspend fun obtenerPublicaciones():
             Response<List<MostrarPublicaciones>>
+//comentarios
+@GET("api/Publicaciones/comentarios.php")
+suspend fun obtenerComentarios(
+    @Query("id_publicacion") idPublicacion: Int,
+    @Query("tipo_publicacion") tipoPublicacion: String
+): Response<List<Comentario>>
+
+    // Enviar el comentario empaquetado con su tipo
+    @POST("api/Publicaciones/comentarios.php")
+    suspend fun enviarComentario(
+        @Body comentario: Comentario
+    ): Response<ApiResponse>
 
 
 }

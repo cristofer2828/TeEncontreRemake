@@ -23,14 +23,13 @@ class PreferenceManager(context: Context) {
     }
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val gson = Gson() // Instancia de Gson para serializar/deserializer objetos complejos
+    private val gson = Gson()
+
     // --- NOTIFICACIONES ---
     fun getNotifications(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS, true)
     fun setNotifications(enabled: Boolean) { prefs.edit { putBoolean(KEY_NOTIFICATIONS, enabled) } }
 
     // --- GESTIÓN DE SESIÓN DE USUARIOS (AZURE) ---
-
-
 
     /**
      * Recupera el usuario logueado reconstruyendo polimórficamente su clase real.
@@ -51,24 +50,35 @@ class PreferenceManager(context: Context) {
         }
     }
 
-    fun clearSession() {
-
-        prefs.edit {
-            remove(KEY_USER_DATA)
-            remove(KEY_USER_ROLE)
-        }
-    }
-
     fun saveLoggedUser(user: BaseUser) {
-
         val json = gson.toJson(user)
-
         prefs.edit {
             putString(KEY_USER_DATA, json)
             putString(KEY_USER_ROLE, user.tipo)
         }
     }
 
+    fun clearSession() {
+        prefs.edit {
+            remove(KEY_USER_DATA)
+            remove(KEY_USER_ROLE)
+        }
+    }
 
+    /**
+     * Extrae de forma segura el nombre del usuario actual evaluando su tipo de modelo.
+     * Revisa si tu data class maneja la propiedad 'nombre' (para Usuario) o 'nombreOrganizacion' (para ONS)
+     */
+    /**
+     * Extrae de forma segura el nombre del usuario o de la organización actual
+     * mapeando correctamente las propiedades exactas de tus modelos.
+     */
+    fun getUserName(): String? {
+        val user = getLoggedUser() ?: return null
+        return when (user) {
+            is Usuario -> user.nombre       // Usa .nombre de tu data class Usuario
+            is Organizacion -> user.nombreOrg // Usa .nombreOrg de tu data class Organizacion
+            else -> null
+        }
+    }
 }
-

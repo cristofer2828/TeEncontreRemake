@@ -76,7 +76,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import coil.compose.AsyncImage
 import com.example.teencontre.data.model.EliminarRequest
-import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.codec.binary.Base64
 import androidx.core.database.sqlite.transaction
 
 class MainActivity : ComponentActivity() {
