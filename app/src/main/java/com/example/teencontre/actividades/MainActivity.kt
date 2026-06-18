@@ -94,6 +94,9 @@ class MainActivity : ComponentActivity() {
             var selectedMascotaId by remember { mutableStateOf(0) }
             var wizardMode by remember { mutableStateOf("perdi") }
             var isDarkMode by remember { mutableStateOf(false) }
+            var direccionSeleccionada by remember {
+                mutableStateOf<String?>(null)
+            }
 
             TeEncontreTheme(darkTheme = isDarkMode, dynamicColor = false) {
                 Surface(
@@ -197,6 +200,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigate = { currentScreen = it }
                             )
                             "mapa" -> MapScreen(
+                                direccionPublicacion = direccionSeleccionada,
                                 onNavigate = { currentScreen = it },
                                 onProfileClick = { currentScreen = "profile" },
                                 onPublishClick = { currentScreen = "selector" }
@@ -209,7 +213,7 @@ class MainActivity : ComponentActivity() {
 
                                 onVerUbicacion = { lugar ->
 
-                                    // luego aquí puedes guardar el lugar seleccionado
+                                    direccionSeleccionada = lugar
                                     currentScreen = "mapa"
                                 }
                             )

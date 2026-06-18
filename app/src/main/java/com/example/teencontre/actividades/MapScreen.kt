@@ -27,6 +27,10 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import android.location.Geocoder
+import android.util.Log
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import java.util.Locale
 
 data class Ubicacion(
     val ubicacion: LatLng,
@@ -36,6 +40,7 @@ data class Ubicacion(
 
 @Composable
 fun MapScreen(
+    direccionPublicacion: String?,
     onNavigate: (String) -> Unit,
     onProfileClick: () -> Unit,
     onPublishClick: () -> Unit
@@ -67,10 +72,14 @@ fun MapScreen(
             val ubicacionDefault = Ubicacion(
                 LatLng(-11.9592875, -77.0052892),
                 "Ubicación",
-                "Mascotas cerca de ti"
+                direccionPublicacion ?: "Mascotas cerca de ti"
             )
-
+            android.util.Log.d(
+                "MAPA_TEST",
+                "Direccion recibida = $direccionPublicacion"
+            )
             MyMap(ubicacionDefault) { }
+
 
             Button(
                 onClick = { onNavigate("selector") },
@@ -97,6 +106,95 @@ fun MyMap(ubicacion: Ubicacion, onReady: (GoogleMap) -> Unit) {
     }
 
     var googleMapRef by remember { mutableStateOf<GoogleMap?>(null) }
+    //ubicacion public
+    var ubicacionPublicacion by remember {
+        mutableStateOf<LatLng?>(null)
+    }
+    LaunchedEffect(ubicacion.descripcion) {
+
+        try {
+
+            Log.d(
+                "MAPA_TEST",
+                "Buscando direccion: ${ubicacion.descripcion}"
+            )
+
+            val geocoder = Geocoder(
+                context,
+                Locale.getDefault()
+            )
+
+            val resultados = geocoder.getFromLocationName(
+                ubicacion.descripcion,
+                1
+            )
+
+            Log.d(
+                "MAPA_TEST",
+                "Resultados encontrados: ${resultados?.size}"
+            )
+
+            if (!resultados.isNullOrEmpty()) {
+
+                ubicacionPublicacion = LatLng(
+                    resultados[0].latitude,
+                    resultados[0].longitude
+                )
+
+                Log.d(
+                    "MAPA_TEST",
+                    "LAT=${resultados[0].latitude} LNG=${resultados[0].longitude}"
+                )
+            }
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "MAPA_TEST",
+                "Error Geocoder",
+                e
+            )
+        }
+    }
+
+// Espera a que el mapa y la ubicación estén listos
+    LaunchedEffect(
+        googleMapRef,
+        ubicacionPublicacion
+    ) {
+
+        if (
+            googleMapRef != null &&
+            ubicacionPublicacion != null
+        ) {
+
+            Log.d(
+                "MAPA_TEST",
+                "MAPA Y UBICACION LISTOS"
+            )
+
+            // NO uses clear() por ahora
+
+            googleMapRef!!.addMarker(
+                MarkerOptions()
+                    .position(ubicacionPublicacion!!)
+                    .title("Mascota reportada")
+                    .snippet(ubicacion.descripcion)
+                    .icon(
+                        BitmapDescriptorFactory.defaultMarker(
+                            BitmapDescriptorFactory.HUE_GREEN
+                        )
+                    )
+            )
+
+            googleMapRef!!.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    ubicacionPublicacion!!,
+                    17f
+                )
+            )
+        }
+    }
 
     fun tienePermisoUbicacion(): Boolean {
         val permisoFino = ContextCompat.checkSelfPermission(
@@ -113,32 +211,30 @@ fun MyMap(ubicacion: Ubicacion, onReady: (GoogleMap) -> Unit) {
     }
 
     fun moverAMiUbicacion(googleMap: GoogleMap) {
+
         if (tienePermisoUbicacion()) {
+
             googleMap.isMyLocationEnabled = true
             googleMap.uiSettings.isMyLocationButtonEnabled = true
 
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                if (location != null) {
-                    val miUbicacion = LatLng(location.latitude, location.longitude)
 
-                    googleMap.clear()
-                    googleMap.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(miUbicacion, 16f)
+                if (location != null) {
+
+                    val miUbicacion = LatLng(
+                        location.latitude,
+                        location.longitude
                     )
+
                     googleMap.addMarker(
                         MarkerOptions()
                             .position(miUbicacion)
                             .title("Mi ubicación actual")
-                    )
-                } else {
-                    googleMap.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(ubicacion.ubicacion, 15f)
-                    )
-                    googleMap.addMarker(
-                        MarkerOptions()
-                            .position(ubicacion.ubicacion)
-                            .title(ubicacion.titulo)
-                            .snippet(ubicacion.descripcion)
+                            .icon(
+                                BitmapDescriptorFactory.defaultMarker(
+                                    BitmapDescriptorFactory.HUE_AZURE
+                                )
+                            )
                     )
                 }
             }
@@ -163,8 +259,37 @@ fun MyMap(ubicacion: Ubicacion, onReady: (GoogleMap) -> Unit) {
         factory = {
             mapView.apply {
                 getMapAsync { googleMap ->
+                    Log.d(
+                        "MAPA_TEST",
+                        "MAPA LISTO"
+                    )
                     googleMapRef = googleMap
+                    ubicacionPublicacion?.let { destino ->
 
+                        Log.d(
+                            "MAPA_TEST",
+                            "AGREGANDO MARCADOR VERDE DESDE MAPA LISTO"
+                        )
+
+                        googleMap.addMarker(
+                            MarkerOptions()
+                                .position(destino)
+                                .title("Mascota reportada")
+                                .snippet(ubicacion.descripcion)
+                                .icon(
+                                    BitmapDescriptorFactory.defaultMarker(
+                                        BitmapDescriptorFactory.HUE_GREEN
+                                    )
+                                )
+                        )
+
+                        googleMap.moveCamera(
+                            CameraUpdateFactory.newLatLngZoom(
+                                destino,
+                                17f
+                            )
+                        )
+                    }
                     if (tienePermisoUbicacion()) {
                         moverAMiUbicacion(googleMap)
                     } else {
