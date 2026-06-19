@@ -63,6 +63,7 @@ import okhttp3.RequestBody
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import androidx.compose.ui.platform.LocalLocale
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -1396,6 +1397,11 @@ fun MapaSelector(
                             MarkerOptions()
                                 .position(latLng)
                                 .title("Última ubicación conocida")
+                                .icon(
+                                    BitmapDescriptorFactory.defaultMarker(
+                                        BitmapDescriptorFactory.HUE_AZURE
+                                    )
+                                )
                         )
                         onPuntoSeleccionado(latLng)
                     }

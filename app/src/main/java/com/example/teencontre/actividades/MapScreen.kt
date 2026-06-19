@@ -29,6 +29,9 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import android.location.Geocoder
 import android.util.Log
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import java.util.Locale
 
@@ -79,17 +82,29 @@ fun MapScreen(
                 "Direccion recibida = $direccionPublicacion"
             )
             MyMap(ubicacionDefault) { }
+            Card(
+                modifier = Modifier
+                    .padding(top = 55.dp, end = 10.dp)
+                    .align(Alignment.TopEnd)
+            ) {
+                Column(
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("🔵 Yo")
+                    Text("🟢 Mascota")
+                }
+            }
 
-
-            Button(
+            FloatingActionButton(
                 onClick = { onNavigate("selector") },
                 modifier = Modifier
-                    .padding(top = 45.dp, start = 16.dp)
-                    .align(Alignment.TopStart),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
-                shape = RoundedCornerShape(20.dp)
+                    .padding(16.dp)
+                    .align(Alignment.TopStart)
             ) {
-                Text("Volver", color = Color.White)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver"
+                )
             }
         }
     }
@@ -226,10 +241,12 @@ fun MyMap(ubicacion: Ubicacion, onReady: (GoogleMap) -> Unit) {
                         location.longitude
                     )
 
+                    // Mi ubicación
                     googleMap.addMarker(
                         MarkerOptions()
                             .position(miUbicacion)
-                            .title("Mi ubicación actual")
+                            .title("📍 Mi ubicación")
+                            .snippet("Tu posición actual")
                             .icon(
                                 BitmapDescriptorFactory.defaultMarker(
                                     BitmapDescriptorFactory.HUE_AZURE
@@ -271,10 +288,11 @@ fun MyMap(ubicacion: Ubicacion, onReady: (GoogleMap) -> Unit) {
                             "AGREGANDO MARCADOR VERDE DESDE MAPA LISTO"
                         )
 
+                        // Publicación
                         googleMap.addMarker(
                             MarkerOptions()
-                                .position(destino)
-                                .title("Mascota reportada")
+                                .position(ubicacionPublicacion!!)
+                                .title("🐾 Mascota reportada")
                                 .snippet(ubicacion.descripcion)
                                 .icon(
                                     BitmapDescriptorFactory.defaultMarker(
@@ -301,6 +319,11 @@ fun MyMap(ubicacion: Ubicacion, onReady: (GoogleMap) -> Unit) {
                                 .position(ubicacion.ubicacion)
                                 .title(ubicacion.titulo)
                                 .snippet(ubicacion.descripcion)
+                                .icon(
+                                    BitmapDescriptorFactory.defaultMarker(
+                                        BitmapDescriptorFactory.HUE_AZURE
+                                    )
+                                )
                         )
 
                         permisoLauncher.launch(
