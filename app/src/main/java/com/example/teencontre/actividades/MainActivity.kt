@@ -321,6 +321,8 @@ fun LoginScreen(
 
                 if (correo.isBlank() || password.isBlank()) {
                     Log.e("LOGIN", "Campos vacíos")
+                    // AVISO PREVENTIVO: Si se olvidan de llenar un campo
+                    android.widget.Toast.makeText(context, "Por favor, llena todos los campos", android.widget.Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
@@ -356,7 +358,7 @@ fun LoginScreen(
                                     prefs.saveLoggedUser(
                                         Usuario(
                                             id = usuario.id,
-                                            email = usuario.email,
+                                            email = usuario.email ?: correo,
                                             nombre = usuario.nombre ?: "",
                                             telefono = usuario.telefono ?: ""
                                         )
@@ -365,7 +367,7 @@ fun LoginScreen(
                                     prefs.saveLoggedUser(
                                         Organizacion(
                                             id = usuario.id,
-                                            email = usuario.email,
+                                            email = usuario.email ?: correo,
                                             nombreOrg = usuario.nombreOrg ?: "",
                                             ruc = usuario.ruc ?: "",
                                             direccion = usuario.direccion ?: "",
@@ -378,12 +380,20 @@ fun LoginScreen(
                                 onLoginSuccess()
                             } else {
                                 Log.e("LOGIN", "Credenciales incorrectas")
+                                // 🛠️ SOLUCIÓN: Mostramos el mensaje interactivo en pantalla al usuario
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "contraseña incorrecta",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
                             Log.e("LOGIN", "EXCEPCIÓN COMPLETA")
                             Log.e("LOGIN", Log.getStackTraceString(e))
+                            // Opcional: Aviso si cae el internet o falla el servidor
+                            android.widget.Toast.makeText(context, "Error de conexión con el servidor", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -419,6 +429,7 @@ fun RegisterScreen(
     onBackToLogin: () -> Unit,
     onShowTerms: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
     val primaryPurple = Color(0xFF7C4DFF)
     val linkBlue = Color(0xFF2196F3)
 
@@ -475,7 +486,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // FORMULARIO DINÁMICO (Con argumentos explícitos asignados de forma segura)
+        // FORMULARIO DINÁMICO
         if (isOrganization) {
             LoginInput(
                 label = "Nombre",
@@ -617,8 +628,23 @@ fun RegisterScreen(
         // BOTÓN REGISTRAR
         Button(
             onClick = {
+                // 🛠️ VALIDACIÓN 1: Todos los campos deben estar completos
+                val formIncompleto = if (isOrganization) {
+                    nombre.isBlank() || telefono.isBlank() || email.isBlank() ||
+                            password.isBlank() || confirmPassword.isBlank() || ruc.isBlank() || direccion.isBlank()
+                } else {
+                    nombre.isBlank() || telefono.isBlank() || email.isBlank() ||
+                            password.isBlank() || confirmPassword.isBlank()
+                }
+
+                if (formIncompleto) {
+                    android.widget.Toast.makeText(context, "Por favor, rellena todos los campos", android.widget.Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                // 🛠️ VALIDACIÓN 2: Las contraseñas deben ser iguales
                 if (password != confirmPassword) {
-                    Log.e("REGISTER", "Las contraseñas no coinciden")
+                    android.widget.Toast.makeText(context, "Las contraseñas no coinciden", android.widget.Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
@@ -638,15 +664,35 @@ fun RegisterScreen(
 
                         withContext(Dispatchers.Main) {
                             if (response.isSuccessful) {
-                                Log.d("REGISTER", "Registro exitoso")
-                                onRegisterSuccess()
+                                val apiResponse = response.body()
+
+                                // 🛠️ VALIDACIÓN 3: Analizar el JSON real que devuelve tu PHP
+                                if (apiResponse != null && apiResponse.success) {
+                                    Log.d("REGISTER", "Registro exitoso en la Base de Datos")
+                                    android.widget.Toast.makeText(context, "¡Registro completado!", android.widget.Toast.LENGTH_SHORT).show()
+                                    onRegisterSuccess()
+                                } else {
+                                    // El servidor respondió 200 OK pero trajo un error interno (ej: Correo duplicado)
+                                    val errorMsg = apiResponse?.error ?: ""
+                                    Log.e("REGISTER", "Fallo interno de registro: $errorMsg")
+
+                                    if (errorMsg.contains("ya existe", ignoreCase = true) || errorMsg.contains("duplicado", ignoreCase = true)) {
+                                        android.widget.Toast.makeText(context, "El correo electrónico no está disponible", android.widget.Toast.LENGTH_LONG).show()
+                                    } else {
+                                        android.widget.Toast.makeText(context, errorMsg.ifBlank { "Error en el registro" }, android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             } else {
-                                Log.e("REGISTER", "Codigo HTTP: ${response.code()}")
-                                Log.e("REGISTER", "Respuesta: ${response.errorBody()?.string()}")
+                                // Errores de servidor serios fuera de la lógica común (Ej: 404, 500)
+                                Log.e("REGISTER", "Codigo HTTP de error: ${response.code()}")
+                                android.widget.Toast.makeText(context, "Error en el servidor. Inténtelo de nuevo", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("REGISTER", "EXCEPTION", e)
+                        withContext(Dispatchers.Main) {
+                            Log.e("REGISTER", "EXCEPTION", e)
+                            android.widget.Toast.makeText(context, "Error de conexión con el servidor", android.widget.Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             },
